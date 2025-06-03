@@ -1,35 +1,39 @@
-export default async function handler(req, res) {
-  // 允许 CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+const fetch = require("node-fetch");
 
-  // 处理预检请求
-  if (req.method === 'OPTIONS') {
+module.exports = async (req, res) => {
+  if (req.method === "OPTIONS") {
+    // 处理 CORS 预检请求
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     return res.status(200).end();
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "仅支持 POST 请求" });
+  }
+
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
   const { prompt } = req.body;
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Only POST requests are allowed' });
-  }
-
   if (!prompt) {
-    return res.status(400).json({ error: '缺少 prompt' });
+    return res.status(400).json({ error: "缺少 prompt" });
   }
 
-  if (!apiKey) {
-    return res.status(500).json({ error: '缺少 API KEY' });
+  const API_KEY = process.env.DEEPSEEK_API_KEY;
+  if (!API_KEY) {
+    return res.status(500).json({ error: "缺少 DeepSeek API Key" });
   }
 
   try {
     const response = await fetch("https://api.deepseek.cn/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
         model: "deepseek-chat",
@@ -40,13 +44,13 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(500).json({ error: data.error?.message || 'DeepSeek API 错误' });
+      return res.status(500).json({ error: data.error?.message || "DeepSeek API 错误" });
     }
 
     const result = data.choices?.[0]?.message?.content || "无分析结果";
     res.status(200).json({ result });
-  } catch (error) {
-    console.error("代理错误：", error);
-    res.status(500).json({ error: "代理服务器错误" });
+  } catch (err) {
+    console.error("代理错误:", err);
+    res.status(500).json({ error: "服务器内部错误" });
   }
-}
+};
