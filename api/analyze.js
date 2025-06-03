@@ -1,7 +1,16 @@
 const fetch = require("node-fetch");
 
 module.exports = async (req, res) => {
-  // 只允许 POST 请求
+  // 设置 CORS 响应头
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // 处理预检请求
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "仅支持 POST 请求" });
   }
