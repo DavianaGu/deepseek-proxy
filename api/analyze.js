@@ -1,15 +1,17 @@
 const fetch = require("node-fetch");
 
 module.exports = async (req, res) => {
-  // CORS headers
+  // 设置 CORS 头部，允许跨域请求
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  // 处理预检请求
   if (req.method === "OPTIONS") {
-    return res.status(200).end(); // 预检请求，直接返回 200
+    return res.status(200).end();
   }
 
+  // 只允许 POST 方法
   if (req.method !== "POST") {
     return res.status(405).json({ error: "仅支持 POST 请求" });
   }
@@ -22,7 +24,6 @@ module.exports = async (req, res) => {
     }
 
     const API_KEY = process.env.DEEPSEEK_API_KEY;
-
     if (!API_KEY) {
       return res.status(500).json({ error: "服务器未配置 API Key" });
     }
@@ -39,16 +40,16 @@ module.exports = async (req, res) => {
       }),
     });
 
-    const data = await response.json();
+    const result = await response.json();
 
     if (!response.ok) {
-      return res.status(500).json({ error: data.error?.message || "调用失败" });
+      return res.status(500).json({ error: result.error?.message || "调用失败" });
     }
 
-    const result = data.choices?.[0]?.message?.content || "无分析结果";
-    res.status(200).json({ result });
-  } catch (error) {
-    console.error("代理错误：", error);
-    res.status(500).json({ error: "服务器内部错误" });
+    const output = result.choices?.[0]?.message?.content || "无分析结果";
+    return res.status(200).json({ result: output });
+  } catch (err) {
+    console.error("调用出错：", err);
+    return res.status(500).json({ error: "服务器内部错误" });
   }
 };
